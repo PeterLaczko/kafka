@@ -127,6 +127,13 @@ public class WorkerConfig extends AbstractConfig {
             + "running with exactly-once support.";
     public static final long OFFSET_COMMIT_TIMEOUT_MS_DEFAULT = 5000L;
 
+    public static final String CONNECTOR_OFFSET_FLUSH_INTERVAL_OVERRIDE_ENABLE_CONFIG = "connector.offset.flush.interval.override.enable";
+    private static final String CONNECTOR_OFFSET_FLUSH_INTERVAL_OVERRIDE_ENABLE_DOC
+            = "Whether to allow connectors to override the worker-level offset.flush.interval.ms configuration. "
+            + "If set to false, all connectors will use the worker-level offset.flush.interval.ms value regardless "
+            + "of any connector-level configuration.";
+    public static final boolean CONNECTOR_OFFSET_FLUSH_INTERVAL_OVERRIDE_ENABLE_DEFAULT = true;
+
     public static final String PLUGIN_PATH_CONFIG = "plugin.path";
     protected static final String PLUGIN_PATH_DOC = "List of paths separated by commas (,) that "
             + "contain plugins (connectors, converters, transformations). The list should consist"
@@ -223,6 +230,8 @@ public class WorkerConfig extends AbstractConfig {
                         Importance.LOW, OFFSET_COMMIT_INTERVAL_MS_DOC)
                 .define(OFFSET_COMMIT_TIMEOUT_MS_CONFIG, Type.LONG, OFFSET_COMMIT_TIMEOUT_MS_DEFAULT,
                         Importance.LOW, OFFSET_COMMIT_TIMEOUT_MS_DOC)
+                .define(CONNECTOR_OFFSET_FLUSH_INTERVAL_OVERRIDE_ENABLE_CONFIG, Type.BOOLEAN, CONNECTOR_OFFSET_FLUSH_INTERVAL_OVERRIDE_ENABLE_DEFAULT,
+                        Importance.MEDIUM, CONNECTOR_OFFSET_FLUSH_INTERVAL_OVERRIDE_ENABLE_DOC)
                 .define(PLUGIN_PATH_CONFIG,
                         Type.LIST,
                         null,
@@ -405,6 +414,13 @@ public class WorkerConfig extends AbstractConfig {
      */
     public long offsetCommitInterval() {
         return getLong(OFFSET_COMMIT_INTERVAL_MS_CONFIG);
+    }
+
+    /**
+     * @return whether connectors are allowed to override the offset flush interval
+     */
+    public boolean connectorOffsetFlushIntervalOverrideEnabled() {
+        return getBoolean(CONNECTOR_OFFSET_FLUSH_INTERVAL_OVERRIDE_ENABLE_CONFIG);
     }
 
     /**

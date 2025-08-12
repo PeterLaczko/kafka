@@ -106,6 +106,7 @@ class WorkerSinkTask extends WorkerTask<ConsumerRecord<byte[], byte[]>, SinkReco
     private boolean taskStopped;
     private final WorkerErrantRecordReporter workerErrantRecordReporter;
     private final String version;
+    private final long offsetFlushIntervalMs;
 
     public WorkerSinkTask(ConnectorTaskId id,
                           SinkTask task,
@@ -127,7 +128,8 @@ class WorkerSinkTask extends WorkerTask<ConsumerRecord<byte[], byte[]>, SinkReco
                           StatusBackingStore statusBackingStore,
                           Supplier<List<ErrorReporter<ConsumerRecord<byte[], byte[]>>>> errorReportersSupplier,
                           TaskPluginsMetadata pluginsMetadata,
-                          Function<ClassLoader, LoaderSwap> pluginLoaderSwapper) {
+                          Function<ClassLoader, LoaderSwap> pluginLoaderSwapper,
+                          long offsetFlushIntervalMs) {
         super(id, statusListener, initialState, loader, connectMetrics, errorMetrics,
                 retryWithToleranceOperator, transformationChain, errorReportersSupplier, time, statusBackingStore, pluginsMetadata, pluginLoaderSwapper);
 
@@ -143,8 +145,8 @@ class WorkerSinkTask extends WorkerTask<ConsumerRecord<byte[], byte[]>, SinkReco
         this.origOffsets = new HashMap<>();
         this.pausedForRedelivery = false;
         this.rebalanceException = null;
-        this.nextCommit = time.milliseconds() +
-                workerConfig.getLong(WorkerConfig.OFFSET_COMMIT_INTERVAL_MS_CONFIG);
+        this.offsetFlushIntervalMs = offsetFlushIntervalMs;
+        this.nextCommit = time.milliseconds() + this.offsetFlushIntervalMs;
         this.committing = false;
         this.commitSeqno = 0;
         this.commitStarted = -1;
@@ -236,15 +238,13 @@ class WorkerSinkTask extends WorkerTask<ConsumerRecord<byte[], byte[]>, SinkReco
     }
 
     protected void iteration() {
-        final long offsetCommitIntervalMs = workerConfig.getLong(WorkerConfig.OFFSET_COMMIT_INTERVAL_MS_CONFIG);
-
         try {
             long now = time.milliseconds();
 
             // Maybe commit
             if (!committing && (context.isCommitRequested() || now >= nextCommit)) {
                 commitOffsets(now);
-                nextCommit = now + offsetCommitIntervalMs;
+                nextCommit = now + offsetFlushIntervalMs;
                 context.clearCommitRequest();
             }
 

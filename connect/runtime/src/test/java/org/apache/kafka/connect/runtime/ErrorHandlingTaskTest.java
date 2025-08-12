@@ -438,7 +438,7 @@ public class ErrorHandlingTaskTest {
             ClusterConfigState.EMPTY, metrics, keyConverterPlugin, valueConverterPlugin, errorHandlingMetrics,
                 headerConverterPlugin, sinkTransforms, consumer, pluginLoader, time,
             retryWithToleranceOperator, workerErrantRecordReporter,
-                statusBackingStore, () -> errorReporters, null, TestPlugins.noOpLoaderSwap());
+                statusBackingStore, () -> errorReporters, null, TestPlugins.noOpLoaderSwap(), workerConfig.offsetCommitInterval());
     }
 
     private void createSourceTask(TargetState initialState, RetryWithToleranceOperator<SourceRecord> retryWithToleranceOperator, List<ErrorReporter<SourceRecord>> errorReporters) {

@@ -182,7 +182,7 @@ public class WorkerSinkTaskThreadedTest {
                 taskId, sinkTask, statusListener, initialState, workerConfig, ClusterConfigState.EMPTY, metrics, keyConverterPlugin,
                 valueConverterPlugin, errorHandlingMetrics, headerConverterPlugin, transformationChain,
                 consumer, pluginLoader, time, RetryWithToleranceOperatorTest.noneOperator(), null, statusBackingStore,
-                Collections::emptyList, null, TestPlugins.noOpLoaderSwap());
+                Collections::emptyList, null, TestPlugins.noOpLoaderSwap(), workerConfig.offsetCommitInterval());
         recordsReturned = 0;
     }
 

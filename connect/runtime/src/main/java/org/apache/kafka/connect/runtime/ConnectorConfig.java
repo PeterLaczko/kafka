@@ -152,6 +152,12 @@ public class ConnectorConfig extends AbstractConfig {
     public static final boolean TASKS_MAX_ENFORCE_DEFAULT = true;
     private static final String TASKS_MAX_ENFORCE_DISPLAY = "Enforce tasks max";
 
+    public static final String OFFSET_FLUSH_INTERVAL_MS_CONFIG = "offset.flush.interval.ms";
+    private static final String OFFSET_FLUSH_INTERVAL_MS_DOC = "Interval at which to try committing offsets for tasks. " +
+            "If not specified, the worker-level configuration will be used. This setting can only be used if the worker " +
+            "configuration 'connector.offset.flush.interval.override.enable' is set to true.";
+    private static final String OFFSET_FLUSH_INTERVAL_MS_DISPLAY = "Offset Flush Interval";
+
     public static final String TRANSFORMS_CONFIG = "transforms";
     private static final String TRANSFORMS_DOC = "Aliases for the transformations to be applied to records.";
     private static final String TRANSFORMS_DISPLAY = "Transforms";
@@ -244,6 +250,7 @@ public class ConnectorConfig extends AbstractConfig {
                 .define(CONNECTOR_VERSION, Type.STRING, defaultConnectorVersion, CONNECTOR_VERSION_VALIDATOR, Importance.MEDIUM, CONNECTOR_VERSION_DOC, COMMON_GROUP, ++orderInGroup, Width.MEDIUM, CONNECTOR_VERSION_DISPLAY, recommender.connectorPluginVersionRecommender())
                 .define(TASKS_MAX_CONFIG, Type.INT, TASKS_MAX_DEFAULT, atLeast(TASKS_MIN_CONFIG), Importance.HIGH, TASKS_MAX_DOC, COMMON_GROUP, ++orderInGroup, Width.SHORT, TASK_MAX_DISPLAY)
                 .define(TASKS_MAX_ENFORCE_CONFIG, Type.BOOLEAN, TASKS_MAX_ENFORCE_DEFAULT, Importance.LOW, TASKS_MAX_ENFORCE_DOC, COMMON_GROUP, ++orderInGroup, Width.SHORT, TASKS_MAX_ENFORCE_DISPLAY)
+                .define(OFFSET_FLUSH_INTERVAL_MS_CONFIG, Type.LONG, null, ConfigDef.Range.atLeast(0), Importance.MEDIUM, OFFSET_FLUSH_INTERVAL_MS_DOC, COMMON_GROUP, ++orderInGroup, Width.MEDIUM, OFFSET_FLUSH_INTERVAL_MS_DISPLAY)
                 .define(KEY_CONVERTER_CLASS_CONFIG, Type.CLASS, keyConverterDefaults.type, KEY_CONVERTER_CLASS_VALIDATOR, Importance.LOW, KEY_CONVERTER_CLASS_DOC, COMMON_GROUP, ++orderInGroup, Width.SHORT, KEY_CONVERTER_CLASS_DISPLAY, recommender.converterPluginRecommender())
                 .define(KEY_CONVERTER_VERSION_CONFIG, Type.STRING, keyConverterDefaults.version, KEY_CONVERTER_VERSION_VALIDATOR, Importance.LOW, KEY_CONVERTER_VERSION_DOC, COMMON_GROUP, ++orderInGroup, Width.SHORT, KEY_CONVERTER_VERSION_DISPLAY, recommender.keyConverterPluginVersionRecommender())
                 .define(VALUE_CONVERTER_CLASS_CONFIG, Type.CLASS, valueConverterDefaults.type, VALUE_CONVERTER_CLASS_VALIDATOR, Importance.LOW, VALUE_CONVERTER_CLASS_DOC, COMMON_GROUP, ++orderInGroup, Width.SHORT, VALUE_CONVERTER_CLASS_DISPLAY, recommender.converterPluginRecommender())
@@ -355,6 +362,27 @@ public class ConnectorConfig extends AbstractConfig {
 
     public boolean enforceTasksMax() {
         return getBoolean(TASKS_MAX_ENFORCE_CONFIG);
+    }
+
+    /**
+     * Get the offset flush interval for this connector.
+     * @param workerConfig the worker configuration to check for override permissions and fallback value
+     * @return the offset flush interval in milliseconds
+     */
+    public long offsetFlushInterval(WorkerConfig workerConfig) {
+        // Check if connector-level overrides are enabled
+        if (!workerConfig.connectorOffsetFlushIntervalOverrideEnabled()) {
+            return workerConfig.offsetCommitInterval();
+        }
+
+        // If overrides are enabled, check for connector-specific configuration
+        Long connectorInterval = getLong(OFFSET_FLUSH_INTERVAL_MS_CONFIG);
+        if (connectorInterval != null) {
+            return connectorInterval;
+        }
+
+        // Fall back to worker configuration
+        return workerConfig.offsetCommitInterval();
     }
 
     /**
